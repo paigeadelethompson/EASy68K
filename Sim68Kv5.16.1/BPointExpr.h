@@ -15,6 +15,7 @@ expression information entered manually by the user.
 #pragma hdrstop
 
 #include "BPoint.h"
+#include "def.h"
 
 #ifndef BPOINT_EXPR
 #define BPOINT_EXPR

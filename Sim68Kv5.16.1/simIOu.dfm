@@ -55,19 +55,4 @@ object simIO: TsimIO
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 23
-  object prompt: TTimer
-    Enabled = False
-    Interval = 500
-    OnTimer = promptTimer
-    Left = 128
-    Top = 8
-  end
-  object OpenDialogIO: TOpenDialog
-    Left = 168
-    Top = 8
-  end
-  object SaveDialogIO: TSaveDialog
-    Left = 208
-    Top = 8
-  end
 end

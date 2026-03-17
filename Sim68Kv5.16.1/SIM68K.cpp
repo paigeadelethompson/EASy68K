@@ -2,7 +2,7 @@
 //   Author: Charles Kelly
 //           www.easy68k.com
 //---------------------------------------------------------------------------
-
+#include <system.hpp>
 #include <dstring.h>
 #include <vcl.h>
 #include <windows.h>

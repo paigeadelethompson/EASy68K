@@ -56,11 +56,11 @@ int currentWave =
     -1; // the index of the current wave playing in standard player
 
 ////// DirectMusic variables
-IDirectMusicLoader8 *dmusicLoader = NULL;           // the loader
-IDirectMusicPerformance8 *dmusicPerformance = NULL; // the performance
-IDirectMusicSegment8 *dmusicSegment; // used by playSound to load and play sound
-IDirectMusicSegment8
-    *dmusicSegments[WAVES]; // used by playSoundMem to play sound already loaded
+//IDirectMusicLoader8 *dmusicLoader = NULL;           // the loader
+//IDirectMusicPerformance8 *dmusicPerformance = NULL; // the performance
+//IDirectMusicSegment8 *dmusicSegment; // used by playSound to load and play sound
+//IDirectMusicSegment8
+//    *dmusicSegments[WAVES]; // used by playSoundMem to play sound already loaded
 HWND hwnd;
 
 // track key presses on I/O screen
@@ -96,13 +96,13 @@ __fastcall TsimIO::TsimIO(TComponent *Owner) : TForm(Owner) {
     // clear sound pointers
     for (int i = 0; i < WAVES; i++) {
       wavemem[i] = NULL;        // used by PlaySound
-      dmusicSegments[i] = NULL; // used by DirectSound
+//      dmusicSegments[i] = NULL; // used by DirectSound
     }
 
     // initialize COM for DirectSound
     if (dsoundExist) {
-      if (FAILED(CoInitialize(NULL)))
-        dsoundExist = false;
+//      if (FAILED(CoInitialize(NULL)))
+//        dsoundExist = false;
     }
 
     hwnd = Form1->Handle;
@@ -148,22 +148,22 @@ __fastcall TsimIO::~TsimIO() {
 
     // close down DirectMusic
     if (dsoundExist) {
-      if (dmusicPerformance != NULL)
-        CloseDown(dmusicPerformance);
-      if (dmusicLoader != NULL)
-        dmusicLoader->Release();
-      if (dmusicPerformance != NULL)
-        dmusicPerformance->Release();
-      if (dmusicSegment != NULL)
-        dmusicSegment->Release();
-      for (int i = 0; i < WAVES; i++) { // free segments used by sounds
-        if (dmusicSegments[i] != NULL)
-          dmusicSegments[i]->Release();
-      }
+//      if (dmusicPerformance != NULL)
+//        CloseDown(dmusicPerformance);
+//      if (dmusicLoader != NULL)
+//        dmusicLoader->Release();
+//      if (dmusicPerformance != NULL)
+//        dmusicPerformance->Release();
+//      if (dmusicSegment != NULL)
+//        dmusicSegment->Release();
+//      for (int i = 0; i < WAVES; i++) { // free segments used by sounds
+//        if (dmusicSegments[i] != NULL)
+//          dmusicSegments[i]->Release();
+//      }
     }
 
     // close down COM
-    CoUninitialize();
+//    CoUninitialize();
 
     if (text)
       delete[] text;
@@ -1456,24 +1456,24 @@ bool TsimIO::InitDirectXAudio(HWND hwnd) {
     WCHAR wcharStr[MAX_PATH];
 
     // create the loader object
-    if (FAILED(CoCreateInstance(CLSID_DirectMusicLoader, NULL, CLSCTX_INPROC,
-                                IID_IDirectMusicLoader8,
-                                (void **)&dmusicLoader))) {
-      Form1->Message->Lines->Add(
-          errstr.sprintf("Unable to create the IDirectMusicLoader8 object!"));
-      return false;
-    }
+//    if (FAILED(CoCreateInstance(CLSID_DirectMusicLoader, NULL, CLSCTX_INPROC,
+//                                IID_IDirectMusicLoader8,
+//                                (void **)&dmusicLoader))) {
+//      Form1->Message->Lines->Add(
+//          errstr.sprintf("Unable to create the IDirectMusicLoader8 object!"));
+//      return false;
+//    }
     // create the performance object
-    if (FAILED(CoCreateInstance(CLSID_DirectMusicPerformance, NULL,
-                                CLSCTX_INPROC, IID_IDirectMusicPerformance8,
-                                (void **)&dmusicPerformance))) {
-      Form1->Message->Lines->Add(errstr.sprintf(
-          "Unable to create the IDirectMusicPerformance8 object!"));
-      return false;
-    }
+//    if (FAILED(CoCreateInstance(CLSID_DirectMusicPerformance, NULL,
+//                                CLSCTX_INPROC, IID_IDirectMusicPerformance8,
+//                                (void **)&dmusicPerformance))) {
+//      Form1->Message->Lines->Add(errstr.sprintf(
+//          "Unable to create the IDirectMusicPerformance8 object!"));
+//      return false;
+//    }
     // initialize the performance with the standard audio path
-    dmusicPerformance->InitAudio(NULL, NULL, hwnd, DMUS_APATH_DYNAMIC_STEREO,
-                                 64, DMUS_AUDIOF_ALL, NULL);
+//    dmusicPerformance->InitAudio(NULL, NULL, hwnd, DMUS_APATH_DYNAMIC_STEREO,
+//                                 64, DMUS_AUDIOF_ALL, NULL);
     // retrieve the current directory
     GetCurrentDirectory(MAX_PATH, pathStr);
 
@@ -1481,7 +1481,7 @@ bool TsimIO::InitDirectXAudio(HWND hwnd) {
     MultiByteToWideChar(CP_ACP, 0, pathStr, -1, wcharStr, MAX_PATH);
 
     // set the search directory
-    dmusicLoader->SetSearchDirectory(GUID_DirectMusicAllTypes, wcharStr, FALSE);
+//    dmusicLoader->SetSearchDirectory(GUID_DirectMusicAllTypes, wcharStr, FALSE);
   } catch (...) {
     Form1->Message->Lines->Add(errstr.sprintf("Error in InitDirectXAudio"));
     return false;
@@ -1491,93 +1491,93 @@ bool TsimIO::InitDirectXAudio(HWND hwnd) {
 
 // LoadSegment()
 // desc: load a segment from a file
-bool TsimIO::LoadSegment(HWND hwnd, char *filename,
-                         IDirectMusicSegment8 *&dmSeg) {
-  try {
-    WCHAR wcharStr[MAX_PATH];
-
+//bool TsimIO::LoadSegment(HWND hwnd, char *filename,
+//                         IDirectMusicSegment8 *&dmSeg) {
+//  try {
+//    WCHAR wcharStr[MAX_PATH];
+//
     // convert filename to unicode string
-    MultiByteToWideChar(CP_ACP, 0, filename, -1, wcharStr, MAX_PATH);
+//    MultiByteToWideChar(CP_ACP, 0, filename, -1, wcharStr, MAX_PATH);
 
     // load the segment from file
-    if (FAILED(dmusicLoader->LoadObjectFromFile(CLSID_DirectMusicSegment,
-                                                IID_IDirectMusicSegment8,
-                                                wcharStr, (void **)&dmSeg))) {
-      Form1->Message->Lines->Add(
-          errstr.sprintf("'%s' Error loading ", filename));
-      return false;
-    }
-  } catch (...) {
-    Form1->Message->Lines->Add(errstr.sprintf("Error in LoadSegment"));
-    return false;
-  }
-  return true;
-}
+//    if (FAILED(dmusicLoader->LoadObjectFromFile(CLSID_DirectMusicSegment,
+//                                                IID_IDirectMusicSegment8,
+//                                                wcharStr, (void **)&dmSeg))) {
+//      Form1->Message->Lines->Add(
+//          errstr.sprintf("'%s' Error loading ", filename));
+//      return false;
+//    }
+//  } catch (...) {
+//    Form1->Message->Lines->Add(errstr.sprintf("Error in LoadSegment"));
+//    return false;
+//  }
+//  return true;
+//}
 
 // PlaySegment()
 // desc: start playing a segment
-void TsimIO::PlaySegment(IDirectMusicPerformance8 *dmPerf,
-                         IDirectMusicSegment8 *dmSeg) {
-  try {
-    // download the segment's instruments to the synthesizer
-    dmSeg->Download(dmusicPerformance);
+//void TsimIO::PlaySegment(IDirectMusicPerformance8 *dmPerf,
+//                         IDirectMusicSegment8 *dmSeg) {
+//  try {
+//    // download the segment's instruments to the synthesizer
+//    dmSeg->Download(dmusicPerformance);
 
     // play the segment
-    dmPerf->PlaySegmentEx(dmSeg, NULL, NULL,
-                          DMUS_SEGF_DEFAULT | DMUS_SEGF_SECONDARY, 0, NULL,
-                          NULL, NULL);
-  } catch (...) {
-    Form1->Message->Lines->Add(errstr.sprintf("Error in PlaySegment"));
-    return;
-  }
-}
+//    dmPerf->PlaySegmentEx(dmSeg, NULL, NULL,
+//                          DMUS_SEGF_DEFAULT | DMUS_SEGF_SECONDARY, 0, NULL,
+//                          NULL, NULL);
+//  } catch (...) {
+//    Form1->Message->Lines->Add(errstr.sprintf("Error in PlaySegment"));
+//    return;
+//  }
+//}
 
 // PlaySegmentLoop()
 // desc: the sound is looped until stopped
-void TsimIO::PlaySegmentLoop(IDirectMusicPerformance8 *dmPerf,
-                             IDirectMusicSegment8 *dmSeg) {
-  try {
+//void TsimIO::PlaySegmentLoop(IDirectMusicPerformance8 *dmPerf,
+//                             IDirectMusicSegment8 *dmSeg) {
+//  try {
     // download the segment's instruments to the synthesizer
-    dmSeg->Download(dmusicPerformance);
+//    dmSeg->Download(dmusicPerformance);
 
     // play the segment
-    dmSeg->SetRepeats(DMUS_SEG_REPEAT_INFINITE);
-    dmPerf->PlaySegmentEx(dmSeg, NULL, NULL,
-                          DMUS_SEGF_DEFAULT | DMUS_SEGF_SECONDARY, 0, NULL,
-                          NULL, NULL);
-  } catch (...) {
-    Form1->Message->Lines->Add(errstr.sprintf("Error in PlaySegmentLoop"));
-    return;
-  }
-}
+//    dmSeg->SetRepeats(DMUS_SEG_REPEAT_INFINITE);
+//    dmPerf->PlaySegmentEx(dmSeg, NULL, NULL,
+//                          DMUS_SEGF_DEFAULT | DMUS_SEGF_SECONDARY, 0, NULL,
+//                          NULL, NULL);
+//  } catch (...) {
+//    Form1->Message->Lines->Add(errstr.sprintf("Error in PlaySegmentLoop"));
+//    return;
+//  }
+//}
 
 // StopSegment()
 // desc: stop a segment from playing
-void TsimIO::StopSegment(IDirectMusicPerformance8 *dmPerf,
-                         IDirectMusicSegment8 *dmSeg) {
-  try {
+//void TsimIO::StopSegment(IDirectMusicPerformance8 *dmPerf,
+//                         IDirectMusicSegment8 *dmSeg) {
+//  try {
     // stop the dmSeg from playing
-    dmPerf->StopEx(dmSeg, 0, 0);
-  } catch (...) {
-    Form1->Message->Lines->Add(errstr.sprintf("Error in StopSegment"));
-    return;
-  }
-}
+//    dmPerf->StopEx(dmSeg, 0, 0);
+//  } catch (...) {
+//    Form1->Message->Lines->Add(errstr.sprintf("Error in StopSegment"));
+//    return;
+//  }
+//}
 
 // CloseDown()
 // desc: shutdown music performance
-void TsimIO::CloseDown(IDirectMusicPerformance8 *dmPerf) {
-  try {
+//void TsimIO::CloseDown(IDirectMusicPerformance8 *dmPerf) {
+//  try {
     // stop the music
-    dmPerf->Stop(NULL, NULL, 0, 0);
+//    dmPerf->Stop(NULL, NULL, 0, 0);
 
     // close down DirectMusic
-    dmPerf->CloseDown();
-  } catch (...) {
-    Form1->Message->Lines->Add(errstr.sprintf("Error in simIO::CloseDown"));
-    return;
-  }
-}
+//    dmPerf->CloseDown();
+//  } catch (...) {
+//    Form1->Message->Lines->Add(errstr.sprintf("Error in simIO::CloseDown"));
+//    return;
+//  }
+//}
 
 // ResetSounds()
 // desc: Stops all playing sounds
@@ -1589,15 +1589,15 @@ void TsimIO::ResetSounds() {
 
     short result;
     // Stop DirectX sounds that are playing
-    for (int i = 0; i < WAVES; i++) {
-      if (dmusicSegments[i] != NULL) {
-        stopSoundMemDX(i, &result);
-        dmusicSegments[i]->Release(); // release current data
-      }
-      delete[] wavemem[i];
-      wavemem[i] = NULL;        // used by PlaySound
-      dmusicSegments[i] = NULL; // used by DirectSound
-    }
+//    for (int i = 0; i < WAVES; i++) {
+//      if (dmusicSegments[i] != NULL) {
+//        stopSoundMemDX(i, &result);
+//        dmusicSegments[i]->Release(); // release current data
+//      }
+//      delete[] wavemem[i];
+//      wavemem[i] = NULL;        // used by PlaySound
+//      dmusicSegments[i] = NULL; // used by DirectSound
+//    }
   } catch (...) {
     Form1->Message->Lines->Add(errstr.sprintf("Error in ResetSounds"));
     return;
@@ -1709,11 +1709,11 @@ void __fastcall TsimIO::playSoundDX(char *fileName, short *result) {
     if (!dsoundExist) // if DirectSound not available
       return;
     if (FileExists(AnsiString(fileName))) {
-      if (LoadSegment(hwnd, fileName, dmusicSegment)) {
+//      if (LoadSegment(hwnd, fileName, dmusicSegment)) {
         // play the segment
-        PlaySegment(dmusicPerformance, dmusicSegment);
-        *result = 1;
-      }
+//        PlaySegment(dmusicPerformance, dmusicSegment);
+//        *result = 1;
+//      }
     } else { // file not found
       Form1->Message->Lines->Add(errstr.sprintf("'%s' not found", fileName));
     }
@@ -1738,10 +1738,10 @@ void __fastcall TsimIO::loadSoundDX(char *fileName, int waveIndex,
     if (!dsoundExist) // if DirectSound not available
       return;
     if (FileExists(AnsiString(fileName))) {
-      if (dmusicSegments[waveIndex] != NULL)  // if segment in use
-        dmusicSegments[waveIndex]->Release(); // release current data
-      if (LoadSegment(hwnd, fileName, dmusicSegments[waveIndex]))
-        *result = 1;
+//      if (dmusicSegments[waveIndex] != NULL)  // if segment in use
+//        dmusicSegments[waveIndex]->Release(); // release current data
+//      if (LoadSegment(hwnd, fileName, dmusicSegments[waveIndex]))
+//        *result = 1;
     } else { // file not found
       Form1->Message->Lines->Add(errstr.sprintf("'%s' not found", fileName));
     }
@@ -1760,10 +1760,10 @@ void __fastcall TsimIO::playSoundMemDX(int waveIndex, short *result) {
     *result = 0;      // default to DirectX not available
     if (!dsoundExist) // if DirectSound not available
       return;
-    if (dmusicSegments[waveIndex] != NULL) {
-      PlaySegment(dmusicPerformance, dmusicSegments[waveIndex]);
-      *result = 1;
-    }
+//    if (dmusicSegments[waveIndex] != NULL) {
+//      PlaySegment(dmusicPerformance, dmusicSegments[waveIndex]);
+//      *result = 1;
+//    }
   } catch (...) {
     Form1->Message->Lines->Add(errstr.sprintf("Error in playSoundMem"));
     return;
@@ -1779,10 +1779,10 @@ void __fastcall TsimIO::stopSoundMemDX(int waveIndex, short *result) {
     *result = 0;      // default to DirectX not available
     if (!dsoundExist) // if DirectSound not available
       return;
-    if (dmusicSegments[waveIndex] != NULL) {
-      StopSegment(dmusicPerformance, dmusicSegments[waveIndex]);
-      *result = 1;
-    }
+//    if (dmusicSegments[waveIndex] != NULL) {
+//      StopSegment(dmusicPerformance, dmusicSegments[waveIndex]);
+//      *result = 1;
+//    }
   } catch (...) {
     Form1->Message->Lines->Add(errstr.sprintf("Error in stopSoundMem"));
     return;
@@ -1804,28 +1804,28 @@ void __fastcall TsimIO::controlSoundDX(int control, int waveIndex,
     *result = 0;      // default to error
     if (!dsoundExist) // if DirectSound not available
       return;
-    if (dmusicSegments[waveIndex] != NULL) {
-      switch (control) {
-      case 0: // play sound once
-        playSoundMemDX(waveIndex, result);
-        break;
-      case 1: // play sound in loop
-        if (dmusicSegments[waveIndex] != NULL) {
-          PlaySegmentLoop(dmusicPerformance, dmusicSegments[waveIndex]);
-          *result = 1;
-        }
-        break;
-      case 2: // stop sound
-        stopSoundMemDX(waveIndex, result);
-        break;
-      case 3: // stop all sounds
-        for (int i = 0; i < WAVES; i++) {
-          stopSoundMemDX(i, result);
-        }
-        *result = 1;
-        break;
-      }
-    }
+//    if (dmusicSegments[waveIndex] != NULL) {
+//      switch (control) {
+//      case 0: // play sound once
+//        playSoundMemDX(waveIndex, result);
+//        break;
+//      case 1: // play sound in loop
+//        if (dmusicSegments[waveIndex] != NULL) {
+//          PlaySegmentLoop(dmusicPerformance, dmusicSegments[waveIndex]);
+//          *result = 1;
+//        }
+//        break;
+//      case 2: // stop sound
+//        stopSoundMemDX(waveIndex, result);
+//        break;
+//      case 3: // stop all sounds
+//        for (int i = 0; i < WAVES; i++) {
+//          stopSoundMemDX(i, result);
+//        }
+//        *result = 1;
+//        break;
+//      }
+//    }
   } catch (...) {
     Form1->Message->Lines->Add(errstr.sprintf("Error in playSoundMem"));
     return;

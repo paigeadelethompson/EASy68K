@@ -3,8 +3,8 @@
 #ifndef simIOuH
 #define simIOuH
 //---------------------------------------------------------------------------
-#include <dmusicc.h> // DirectMusic includes
-#include <dmusici.h>
+//#include <dmusicc.h> // DirectMusic includes
+//#include <dmusici.h>
 
 #include "Net.h"
 #include "def.h"
@@ -98,15 +98,15 @@ public: // User declarations
   void __fastcall setupWindow();
   void __fastcall drawText(AnsiString str, int x, int y);
   bool InitDirectXAudio(HWND hwnd);
-  bool LoadSegment(HWND hwnd, char *filename, IDirectMusicSegment8 *&dmSeg);
-  void PlaySegment(IDirectMusicPerformance8 *dmPerf,
-                   IDirectMusicSegment8 *dmSeg);
-  void PlaySegmentLoop(IDirectMusicPerformance8 *dmPerf,
-                       IDirectMusicSegment8 *dmSeg);
-  void StopSegment(IDirectMusicPerformance8 *dmPerf,
-                   IDirectMusicSegment8 *dmSeg);
+//  bool LoadSegment(HWND hwnd, char *filename, IDirectMusicSegment8 *&dmSeg);
+//  void PlaySegment(IDirectMusicPerformance8 *dmPerf,
+//                   IDirectMusicSegment8 *dmSeg);
+//  void PlaySegmentLoop(IDirectMusicPerformance8 *dmPerf,
+//                       IDirectMusicSegment8 *dmSeg);
+//  void StopSegment(IDirectMusicPerformance8 *dmPerf,
+//                   IDirectMusicSegment8 *dmSeg);
   void TsimIO::ResetSounds();
-  void CloseDown(IDirectMusicPerformance8 *dmPerf);
+//  void CloseDown(IDirectMusicPerformance8 *dmPerf);
 
   void __fastcall closeAllComm();
   void __fastcall initComm(int cid, char *portName, short *result);

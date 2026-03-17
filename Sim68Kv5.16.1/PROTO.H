@@ -1,3 +1,7 @@
+#ifndef protoH
+#define protoH
+#include "def.h"
+
 
 /***************************** 68000 SIMULATOR ****************************
 
@@ -155,8 +159,8 @@ void value_of(long *EA, long *EV, long size);
 int cc_update(int x, int n, int z, int v, int c, long source, long dest,
               long result, long size, int r);
 int check_condition(int condition);
-// uint flip(uint *n);
-// uint flip(uint &n);
+uint flip(uint *n);
+uint flip(uint &n);
 ushort flip(ushort *);
 ushort flip(ushort &);
 
@@ -173,4 +177,5 @@ void DFcommand(); // shows register display
 void __fastcall initPrint();
 void haltSimulator();
 int memoryMapCheck(maptype mapt, int loc, int bytes);
-
+
+#endif
