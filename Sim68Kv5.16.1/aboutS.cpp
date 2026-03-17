@@ -8,32 +8,22 @@
 #pragma hdrstop
 
 #include "aboutS.h"
-#include "def.h"
 #include "SIM68Ku.h"
-
+#include "def.h"
 
 //---------------------------------------------------------------------
 #pragma resource "*.dfm"
 TAboutFrm *AboutFrm;
-//--------------------------------------------------------------------- 
-__fastcall TAboutFrm::TAboutFrm(TComponent* AOwner)
-	: TForm(AOwner)
-{
-}
+//---------------------------------------------------------------------
+__fastcall TAboutFrm::TAboutFrm(TComponent *AOwner) : TForm(AOwner) {}
 //---------------------------------------------------------------------
 
-void __fastcall TAboutFrm::FormShow(TObject *Sender)
-{
-  Title->Caption = TITLE;        
-}
+void __fastcall TAboutFrm::FormShow(TObject *Sender) { Title->Caption = TITLE; }
 //---------------------------------------------------------------------------
-
 
 void __fastcall TAboutFrm::FormKeyDown(TObject *Sender, WORD &Key,
-      TShiftState Shift)
-{
-   if (Key == VK_F1)
-     Form1->displayHelp("CHUCK");
+                                       TShiftState Shift) {
+  if (Key == VK_F1)
+    Form1->displayHelp("CHUCK");
 }
 //---------------------------------------------------------------------------
-

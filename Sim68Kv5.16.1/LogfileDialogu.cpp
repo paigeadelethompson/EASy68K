@@ -17,13 +17,9 @@
 #pragma resource "*.dfm"
 TLogfileDialog *LogfileDialog;
 //---------------------------------------------------------------------------
-__fastcall TLogfileDialog::TLogfileDialog(TComponent* Owner)
-        : TForm(Owner)
-{
-}
+__fastcall TLogfileDialog::TLogfileDialog(TComponent *Owner) : TForm(Owner) {}
 //---------------------------------------------------------------------------
 
-void __fastcall TLogfileDialog::setMessage(AnsiString str)
-{
+void __fastcall TLogfileDialog::setMessage(AnsiString str) {
   Message->Caption = str;
 }

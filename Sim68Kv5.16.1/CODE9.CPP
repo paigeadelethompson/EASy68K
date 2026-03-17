@@ -14,22 +14,20 @@ related operations:
 
 ***************************************************************************/
 
-
+#include <Printers.hpp>
+#include <dos.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dos.h>
-#include <Printers.hpp>
 
-#include "extern.h"         // contains global "extern" declarations
-#include "simIOu.h"
 #include "SIM68Ku.h"
+#include "extern.h" // contains global "extern" declarations
 #include "hardwareu.h"
 #include "logU.h"
-
+#include "simIOu.h"
 
 extern uchar keyDownCode;       // defined in simIOu, used by Trap #15,19
 extern uchar keyUpCode;         // "
-extern bool disableKeyCommands;  // defined in SIM68Ku
+extern bool disableKeyCommands; // defined in SIM68Ku
 
 // global variables for printing
 TPrinter *Prntr;
@@ -43,9 +41,7 @@ int pageRight;
 int pageX;
 int pageY;
 
-
-void __fastcall formFeed()
-{
+void __fastcall formFeed() {
   if (!printing) {
     initPrint();
     Prntr->BeginDoc();
@@ -55,16 +51,14 @@ void __fastcall formFeed()
   pageY = pageTop;
 }
 
-void __fastcall lineFeed()
-{
+void __fastcall lineFeed() {
   pageY += pageRowHeight;
   if (pageY > pageBot) {
     formFeed();
   }
 }
 
-void __fastcall nextX()
-{
+void __fastcall nextX() {
   pageX += pageColWidth;
   if (pageX > pageRight) {
     pageX = pageX - pageRight + pageLeft;
@@ -72,13 +66,12 @@ void __fastcall nextX()
   }
 }
 
-void __fastcall initPrint()
-{
+void __fastcall initPrint() {
   Prntr = Printer();
   printing = false;
   Prntr->Canvas->Font->Assign(Form1->FontDialogPrinter->Font);
   pageRowHeight = Prntr->Canvas->TextHeight("Xp");
-  pageColWidth  = Prntr->Canvas->TextWidth("W");
+  pageColWidth = Prntr->Canvas->TextWidth("W");
   pageTop = Prntr->PageHeight / 11;
   pageBot = Prntr->PageHeight - pageTop;
   pageLeft = Prntr->PageWidth / 8;
@@ -97,113 +90,97 @@ void __fastcall initPrint()
 //  \r	0x0D	CR	Carriage return
 //  \t	0x09	HT	Tab (horizontal)
 //  \v	0x0B	VT	Vertical tab
-void __fastcall printChar(char ch)
-{
+void __fastcall printChar(char ch) {
   if (!printing) {
     initPrint();
     Prntr->BeginDoc();
     printing = true;
   }
   switch (ch) {
-    case '\b':                  // if Backspace
-      pageX -= pageColWidth;
-      if (pageX < pageLeft)
-        pageX = pageLeft;
-      break;
-    case '\f':                  // if Formfeed
-      formFeed();
-      break;
-    case '\n':                  // if LF
-      lineFeed();
-      break;
-    case '\r':                  // if CR
+  case '\b': // if Backspace
+    pageX -= pageColWidth;
+    if (pageX < pageLeft)
       pageX = pageLeft;
-      break;
-    case '\t':                  // if Tab
-      pageX += 4 * pageColWidth;
+    break;
+  case '\f': // if Formfeed
+    formFeed();
+    break;
+  case '\n': // if LF
+    lineFeed();
+    break;
+  case '\r': // if CR
+    pageX = pageLeft;
+    break;
+  case '\t': // if Tab
+    pageX += 4 * pageColWidth;
+    nextX();
+    break;
+  case '\v': // if Vertical tab
+    pageY += 4 * pageRowHeight;
+    if (pageY > pageBot) {
+      int tempY = pageY - pageBot + pageTop;
+      formFeed();
+      pageY = tempY;
+    }
+    break;
+  default:
+    if (ch >= ' ') { // if not control char
+      Prntr->Canvas->TextOut(pageX, pageY, AnsiString(ch));
       nextX();
-      break;
-    case '\v':                  // if Vertical tab
-      pageY += 4 * pageRowHeight;
-      if (pageY > pageBot) {
-        int tempY = pageY - pageBot + pageTop;
-        formFeed();
-        pageY = tempY;
-      }
-      break;
-    default:
-      if (ch >= ' ') {          // if not control char
-        Prntr->Canvas->TextOut(pageX,pageY,AnsiString(ch));
-        nextX();
-      }
+    }
   } // end switch
 }
 
 //-----------------------------------------------------
-int	CHK()
-{
-  int	reg;
-  long	temp;
+int CHK() {
+  int reg;
+  long temp;
 
   reg = (inst >> 9) & 0x07;
 
   int error = eff_addr((long)WORD_MASK, DATA_ADDR, true);
-  if (error)              // if address error
-    return error;         // return error code
+  if (error)      // if address error
+    return error; // return error code
 
-  from_2s_comp (EV1, (long) WORD_MASK, &source);
+  from_2s_comp(EV1, (long)WORD_MASK, &source);
   dest = D[reg] & WORD_MASK;
 
-  cc_update (N_A, GEN, UND, UND, UND, source, D[reg], D[reg], WORD_MASK, 0);
+  cc_update(N_A, GEN, UND, UND, UND, source, D[reg], D[reg], WORD_MASK, 0);
 
   /* perform the CHK operation */
   if ((dest < 0) || (dest > source))
-	return(CHK_EXCEPTION);
+    return (CHK_EXCEPTION);
 
-  inc_cyc (10);
+  inc_cyc(10);
 
   return SUCCESS;
-
 }
-
 
 //-----------------------------------------------------
-int	ILLEGAL()
-{
+int ILLEGAL() { return (BAD_INST); }
 
-return (BAD_INST);
+int RESET() {
 
+  if (!(SR & sbit))
+    return (NO_PRIVILEGE);
+
+  /* assert the reset line to reset external devices */
+
+  inc_cyc(132);
+
+  return SUCCESS;
 }
-
-
-
-int	RESET()
-{
-
-if (!(SR & sbit))
-	return (NO_PRIVILEGE);
-
-/* assert the reset line to reset external devices */
-
-inc_cyc (132);
-
-return SUCCESS;
-
-}
-
-
 
 //-----------------------------------------------------------
 //  STOP
-int	STOP()
-{
-  long	temp;
-  int	tr_on;
-  //AnsiString str;
+int STOP() {
+  long temp;
+  int tr_on;
+  // AnsiString str;
 
-  inc_cyc (4);
+  inc_cyc(4);
 
-  mem_request (&PC, (long) WORD_MASK, &temp);
+  mem_request(&PC, (long)WORD_MASK, &temp);
 
   if (!(SR & sbit))
     return (NO_PRIVILEGE);
@@ -223,9 +200,9 @@ int	STOP()
   if (tr_on)
     return (TRACE_EXCEPTION);
 
-  //if (tr_on)
-  //  return (SUCCESS);
-  //else
+  // if (tr_on)
+  //   return (SUCCESS);
+  // else
   return (STOP_TRAP);
 }
 
@@ -279,22 +256,17 @@ int	STOP()
       D1.B = 0 to turn off the display of the input prompt.
       D1.B = 1 to turn on the display of the input prompt.(default)
       D1.B = 2 do not display line feed on Enter key during Trap code #2 input
-      D1.B = 3 display line feed on Enter key during Trap code #2 input (default)
-      Other values of D1 reserved for future use.
-      Input prompt display is enabled by default and by 'Reset' or when a
-      new file is loaded.
- 17 - Combination of Trap codes 14 & 3. Displays the NULL terminated string at
-      (A1) without CRLF then displays the decimal number in D1.L.
- 18 - Combination of Trap codes 14 & 4. Displays the NULL terminated string at
-      (A1) without CRLF then reads a number from the keyboard into
-      D1.L.
- 19 - Return keypress state for specified keys.
-      pre:  D1.L = up to 4 bytes of keycodes to check
-      post: D1.L = corresponding byte set to $00 if key up, $FF if key down
-        or
-      pre:  D1.L = 0
-      post: D1.L upper word contains key code of last key up. (Sim68K v4.7.3 and newer)
-            D1.L lower word contains key code of last key down.
+      D1.B = 3 display line feed on Enter key during Trap code #2 input
+(default) Other values of D1 reserved for future use. Input prompt display is
+enabled by default and by 'Reset' or when a new file is loaded. 17 - Combination
+of Trap codes 14 & 3. Displays the NULL terminated string at (A1) without CRLF
+then displays the decimal number in D1.L. 18 - Combination of Trap codes 14 & 4.
+Displays the NULL terminated string at (A1) without CRLF then reads a number
+from the keyboard into D1.L. 19 - Return keypress state for specified keys. pre:
+D1.L = up to 4 bytes of keycodes to check post: D1.L = corresponding byte set to
+$00 if key up, $FF if key down or pre:  D1.L = 0 post: D1.L upper word contains
+key code of last key up. (Sim68K v4.7.3 and newer) D1.L lower word contains key
+code of last key down.
 
  20 - Display signed number in D1.L in decimal in field D2.B columns wide.
  21 - Set font properties where
@@ -453,15 +425,12 @@ of zero indicates success.
         (A1)    Points to a null terminated string that will be used as the
                 request title string or A1=$00000000 to use the default
                 'Load file' or 'Save file' depending on D1
-        (A2)    Points to a null terminated string containing semicolon seperated
-                list of file extensions for use in dialog, e.g. '*.txt;*.pcb',0
-                or A2=$00000000 for all file types.
-        (A3)    Points to a buffer of sufficient size to hold the zero
-                terminated full file path and name.
-                On calling, if this contains a file path and name this will be
-                used as the original file path and name.
-                If the user exits via the cancel button this buffer will
-                remain unchanged.
+        (A2)    Points to a null terminated string containing semicolon
+seperated list of file extensions for use in dialog, e.g. '*.txt;*.pcb',0 or
+A2=$00000000 for all file types. (A3)    Points to a buffer of sufficient size
+to hold the zero terminated full file path and name. On calling, if this
+contains a file path and name this will be used as the original file path and
+name. If the user exits via the cancel button this buffer will remain unchanged.
       Post:
         D1 = 0 if user cancelled or just closed
         D1 = 1 if user hit open/save
@@ -471,12 +440,11 @@ of zero indicates success.
 
 -PERIPHERAL I/O-
  60 - MOUSE IRQ. Enable/Disable mouse IRQ
-      An IRQ is created when a mouse button is pressed or released in the output window.
-      D1.W High Byte = IRQ level (1-7), 0 to turn off
-      D1.W Low Byte = Mouse event that triggers IRQ:
-                      Bit2 = Move, Bit1 = Button Up, Bit0 = Button Down
-      (Example D1.W = $0107, Enable mouse IRQ level 1 for Move, Button Up and Button Down)
-      (Example D1.W - $0002, Disable mouse IRQ for Button Up)
+      An IRQ is created when a mouse button is pressed or released in the output
+window. D1.W High Byte = IRQ level (1-7), 0 to turn off D1.W Low Byte = Mouse
+event that triggers IRQ: Bit2 = Move, Bit1 = Button Up, Bit0 = Button Down
+      (Example D1.W = $0107, Enable mouse IRQ level 1 for Move, Button Up and
+Button Down) (Example D1.W - $0002, Disable mouse IRQ for Button Up)
 
  61 - MOUSE READ.
       The state of mouse buttons and position.
@@ -528,19 +496,16 @@ of zero indicates success.
       Reusing a reference number causes the previous sound to be erased.
      post: DO.W = non zero if sound loaded successfully.
            D0.W = 0 if DirectX sound not available.
- 75 - Play sound from DirectX memory loaded with trap code 74 using DirectX player.
-      Multiple sounds may be played at the same time.
-    pre :  D1.B must contain sound reference number used in trap code 74.
-    post:  D0.W = non zero if sound played successfully
-           D0.W = 0 if DirectX player not available, sound is not played
- 76 - Control standard player
-      Sounds must be in memory loaded with trap code 71.
-      Only one sound may be played at a time.
-    pre :  D1.B contains sound reference number used in trap code 71.
-           D2.L = 0, play sound once (this is the same as trap task 72)
-           D2.L = 1, play sound in loop, returns error if sound already playing in loop
-           D2.L = 2, stop D1.B referenced sound, returns error on bad reference number
-           D2.L = 3, stop all sounds, returns success (D1.B ignored)
+ 75 - Play sound from DirectX memory loaded with trap code 74 using DirectX
+player. Multiple sounds may be played at the same time. pre :  D1.B must contain
+sound reference number used in trap code 74. post:  D0.W = non zero if sound
+played successfully D0.W = 0 if DirectX player not available, sound is not
+played 76 - Control standard player Sounds must be in memory loaded with trap
+code 71. Only one sound may be played at a time. pre :  D1.B contains sound
+reference number used in trap code 71. D2.L = 0, play sound once (this is the
+same as trap task 72) D2.L = 1, play sound in loop, returns error if sound
+already playing in loop D2.L = 2, stop D1.B referenced sound, returns error on
+bad reference number D2.L = 3, stop all sounds, returns success (D1.B ignored)
            D2.L = other values reserved for future use
     post:  D0.W = non zero on success
            D0.W = 0 on error
@@ -550,11 +515,10 @@ of zero indicates success.
     pre :  D1.B contains sound reference number used in trap code 74.
            D2.L = 0, play sound once (this is the same as trap task 75)
            D2.L = 1, play sound in loop, even if sound already playing
-           D2.L = 2, stop D1.B referenced sound, returns error on bad reference number
-           D2.L = 3, stop all DirectX sounds, returns success (D1.B ignored)
-           D2.L = other values reserved for future use
-    post:  D0.W = non zero on success
-           D0.W = 0 on error
+           D2.L = 2, stop D1.B referenced sound, returns error on bad reference
+number D2.L = 3, stop all DirectX sounds, returns success (D1.B ignored) D2.L =
+other values reserved for future use post:  D0.W = non zero on success D0.W = 0
+on error
 
 -GRAPHICS-
  The graphics resolution is 640 x 480 with 0,0 at the top left.
@@ -582,36 +546,28 @@ of zero indicates success.
  90 - Draw unfilled rectangle defined by (Left X, Upper Y, Right X, Lower Y). 
       where LX = D1.W, UY = D2.W, RX = D3.W, LY = D4.W
       The rectangle is drawn using line color and is not filled.
- 91 - Draw unfilled ellipse bounded by the rectangle (Left X, Upper Y, Right X, Lower Y)
-      where LX = D1.W, UY = D2.W, RX = D3.W, LY = D4.W
-      The ellipse is drawn using line color and is not filled.
-      A circle is drawn if the bounding rectangle is a square.
- 92 - Set drawing mode where D1.W is mode number as:
-        0 - Always black
-        1 - Always white
-        2 - Unchanged
-        3 - Inverse of background color
-        4 - Use pen color specified with trap code 80
-        5 - Inverse of pen color
-        6 - Combination of pen color and inverse of background
-        7 - Combination of colors common to both pen and inverse of background.
-        8 - Combination of background color and inverse of pen color
-        9 - Combination of colors common to both background and inverse of pen
-       10 - Combination of pen color and background color
+ 91 - Draw unfilled ellipse bounded by the rectangle (Left X, Upper Y, Right X,
+Lower Y) where LX = D1.W, UY = D2.W, RX = D3.W, LY = D4.W The ellipse is drawn
+using line color and is not filled.       A circle is drawn if the bounding
+rectangle is a square. 92 - Set drawing mode where D1.W is mode number as: 0 -
+Always black 1 - Always white 2 - Unchanged 3 - Inverse of background color 4 -
+Use pen color specified with trap code 80 5 - Inverse of pen color 6 -
+Combination of pen color and inverse of background 7 - Combination of colors
+common to both pen and inverse of background. 8 - Combination of background
+color and inverse of pen color 9 - Combination of colors common to both
+background and inverse of pen 10 - Combination of pen color and background color
        11 - Inverse combination of pen color and background color
        12 - Combination of colors common to both pen and background
        13 - Inverse combination of colors common to both pen and background
        14 - Combination of colors in either pen or background, but not both
-       15 - Inverse combination of colors in either pen or background, but not both
-       16 - Turn off double buffering (default)
-       17 - Enable double buffering. Draw on offscreen buffer
- 93 - Set pen width where D1.B is width in pixels.
- 94 - Repaint screen. Copies offscreeen buffer to visible screen.
- 95 - Draw the NULL terminated string of text pointed to by (A1) to
-      screen location X,Y where X = D1.W & Y = D2.W. The text is drawn as
-      graphics and may not be read using trap task 22. Control characters are
-      ignored. X,Y specifies the location of the top left corner of the text
- 96 - Get X,Y pen position where D1.W = X & D2.W = Y
+       15 - Inverse combination of colors in either pen or background, but not
+both 16 - Turn off double buffering (default) 17 - Enable double buffering. Draw
+on offscreen buffer 93 - Set pen width where D1.B is width in pixels. 94 -
+Repaint screen. Copies offscreeen buffer to visible screen. 95 - Draw the NULL
+terminated string of text pointed to by (A1) to screen location X,Y where X =
+D1.W & Y = D2.W. The text is drawn as graphics and may not be read using trap
+task 22. Control characters are ignored. X,Y specifies the location of the top
+left corner of the text 96 - Get X,Y pen position where D1.W = X & D2.W = Y
 
 
  -NETWORK I/O-
@@ -623,8 +579,8 @@ of zero indicates success.
        Bits (8-15) = reserved
        Bits 16-31) contains port number
        Bits (16-31) reserved
-       (A2) IP address to connect to as null terminated string (e.g. '192.168.1.100',0) or
-            null terminated domain name (e.g. 'www.easy68k.com',0)
+       (A2) IP address to connect to as null terminated string (e.g.
+'192.168.1.100',0) or null terminated domain name (e.g. 'www.easy68k.com',0)
      Post:
        D0.L is 0 on success,
          non zero on error
@@ -671,16 +627,10 @@ of zero indicates success.
        High word (Bits 16-31) Reserved for future use.
        (A1) data to send
        If server
-         (A2) IP address to send to as null terminated string (e.g. '192.168.1.100',0)
-     Post:
-       D0.L is 0 on success,
-         non zero on error
-         Low word (Bits 0-15)
-           1 - send failed
-           all other values reserved
-         High word (Bits 16-31)
-           extended error code
-       D1.L number of bytes sent, may be 0. Unchanged on error.
+         (A2) IP address to send to as null terminated string (e.g.
+'192.168.1.100',0) Post: D0.L is 0 on success, non zero on error Low word (Bits
+0-15) 1 - send failed all other values reserved High word (Bits 16-31) extended
+error code D1.L number of bytes sent, may be 0. Unchanged on error.
 
 103 : RECEIVE
      Pre:
@@ -716,601 +666,606 @@ of zero indicates success.
            all other values reserved
          High word (Bits 16-31)
            extended error code
-       (A2) contains local IP address as null terminated string (e.g. '192.168.1.100',0)
+       (A2) contains local IP address as null terminated string (e.g.
+'192.168.1.100',0)
 */
 
-
-int TRAP()
-{
+int TRAP() {
   int vector, cid, code;
   char *inStr;
-  char buf[256];                        // temp buffer
+  char buf[256]; // temp buffer
   byte mouseIRQ, keyIRQ;
 
   vector = inst & 0x0F;
-  if(vector == 15) {                    // if display vector
-    switch ((char)D[0]) {               // which task ?
-      case 0: case 1:                   // display D1.W chars
-        inStr = &memory[A[1] & ADDRMASK];          // address of string
-        strncpy(buf,inStr,255);         // make copy of string so we can terminate it
-        if ((short)D[1] > 255)          // if D1 size > 255
-          buf[255] = '\0';              // terminate at char 255
-        else
-          buf[(short)D[1]] = '\0';      // terminate at D1 char
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
+  if (vector == 15) {     // if display vector
+    switch ((char)D[0]) { // which task ?
+    case 0:
+    case 1:                             // display D1.W chars
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      if ((short)D[1] > 255)    // if D1 size > 255
+        buf[255] = '\0';        // terminate at char 255
+      else
+        buf[(short)D[1]] = '\0'; // terminate at D1 char
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
 
-        if ((char)D[0])                 // if D0.B = 1
-          simIO->textOut(buf);          // display string without CRLF
-        else
-          simIO->textOutCR(buf);        // display string with CRLF
+      if ((char)D[0])        // if D0.B = 1
+        simIO->textOut(buf); // display string without CRLF
+      else
+        simIO->textOutCR(buf); // display string with CRLF
+      break;
+    case 2:                              // input
+      inStr = &memory[A[1] & ADDRMASK];  // address of string
+      simIO->textIn(inStr, &D[1], NULL); // read string into inStr, length in D1
+      break;
+    case 3:                // display number in D1.L
+      itoa(D[1], buf, 10); // convert D1.L to string, put in buf
+      simIO->textOut(buf); // display number without CRLF
+      break;
+    case 4: // read number to D1.L   // inputBuf & inputSize must be global
+      simIO->textIn(inputBuf, &inputSize, &D[1]); // read number to D1
+      break;
+    case 5: // read char to D1.B
+      simIO->charIn((char *)&D[1]);
+      break;
+    case 6: // display char in D1.B
+      simIO->charOut((char)D[1]);
+      break;
+    case 7: // Set D1.B to 1 if keyboard input is pending, otherwise set to 0
+      if (pendingKey) {
+        D[1] &= 0xFFFFFF00;
+        D[1] |= 0x00000001;
+      } else {
+        D[1] &= 0xFFFFFF00;
+      }
+      break;
+    case 8: // Return time in hundredths of a second since midnight in D1.L
+      struct time t;
+      gettime(&t);
+      D[1] = t.ti_hour * 60 * 60 * 100 + t.ti_min * 60 * 100 + t.ti_sec * 100 +
+             t.ti_hund;
+      break;
+    case 9: // terminate the program
+      Form1->AutoTraceTimer->Enabled = false;
+      trace = false;
+      halt = true;
+      Hardware->disable();
+      Log->stopLogWithAnnounce();
+      break;
+    case 10:                            // print text at (A1)
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      while (*inStr)
+        printChar(*inStr++);
+      break;
+    case 11: // position cursor at col,row. D1.W holds col,row as bytes
+      if ((unsigned short)D[1] == 0xFF00) // Clear Screen if D1.W is $FF00.
+        simIO->clear();
+      else if ((unsigned short)D[1] == 0x00FF) // Return cursor position
+        simIO->getrc((short *)&D[1]);          // puts cursor position in D1.W
+      else
+        simIO->gotorc((char)D[1], (char)(D[1] >> 8));
+      break;
+    case 12:               // keyboard echo (on/off)
+      if ((char)D[1] == 0) // if D1.B = 0
+        keyboardEcho = false;
+      else
+        keyboardEcho = true;
+      break;
+    case 13:
+    case 14: // Display NULL terminated string at (A1)
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      if ((char)D[0] == 14)    // if D0.B = 14
+        simIO->textOut(inStr); // display string without CRLF
+      else
+        simIO->textOutCR(inStr); // display string with CRLF
+      break;
+    case 15: // Display D1 converted to radix in D2.B
+      if ((char)D[2] >= 2 && (char)D[2] <= 36) { // if 2 <= D2.B <= 36
+        ultoa(D[1], buf, (char)D[2]); // convert D1.L to string, put in buf
+        AnsiString hex = buf;
+        hex = hex.UpperCase();       // convert to upper case
+        simIO->textOut(hex.c_str()); // display number without CRLF
+      }
+      break;
+    case 16:               // turn input prompt on/off
+      if ((char)D[1] == 0) // if D1.B = 0
+        inputPrompt = false;
+      else if ((char)D[1] == 1)
+        inputPrompt = true;
+      else if ((char)D[1] == 2)
+        inputLFdisplay = false;
+      else if ((char)D[1] == 3)
+        inputLFdisplay = true;
+      break;
+    // Displays the NULL terminated string at (A1) without CRLF
+    //  then displays the decimal number in D1.L.
+    case 17:
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->textOut(inStr); // display string without CRLF
+      itoa(D[1], buf, 10);   // convert D1.L to string, put in buf
+      simIO->textOut(buf);   // display number without CRLF
+      break;
+    // Displays the NULL terminated string at (A1) without CRLF
+    //  then reads a number from the keyboard into D1.L.
+    case 18:
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->textOut(inStr);                      // display string without CRLF
+      simIO->textIn(inputBuf, &inputSize, &D[1]); // read number to D1
+      break;
+    // get keypress state
+    case 19:
+      simIO->getKeyState(&D[1]);
+      break;
+    case 20:
+      sprintf(buf, "%*d", (char)D[2], D[1]);
+      simIO->textOut(buf); // display number without CRLF
+      break;
+    case 21: // if set font color
+      simIO->setFontProperties(D[1], D[2]);
+      break;
+    case 22: // return character at Row, Col in D1
+      simIO->getCharAt((ushort)(D[1] >> 16), (ushort)D[1], (char *)&D[1]);
+      break;
+    case 23: // delay D1/100 second
+    {
+      uint n = (unsigned)D[1];
+      while (n-- > 0 && runMode) {
+        Application->ProcessMessages();
+        Sleep(10); // delay 1/100 second
+      }
+    } break;
+    case 24:
+      if (D[1] == 0) { // disable simulator key actions
+        Form1->restoreMenuTask19();
+      } else if (D[1] == 1) {
+        Form1->setMenuTask19();
+      }
+      break;
+    case 25: // scroll text window at Row, Col, Height, Width, Up or Down
+      simIO->scrollRect((ushort)(D[1] >> 16), (ushort)D[1],
+                        (ushort)(D[2] >> 16), (ushort)D[2], (ushort)D[3]);
+      break;
+    // ------------------SIMULATOR ENVIRONMENT------------------------
+    case 30: // - Clear cycle counter
+      cycles = 0;
+      break;
+    case 31:                   // - Return cycle counter in D1.L.
+      if (cycles > 0xFFFFFFFF) // if cycles > 32 bit
+        D[1] = 0;              // return 0
+      else
+        D[1] = (uint)cycles; // return cycles
+      break;
+    case 32: // - Hardware
+      // AnsiString str = "0x";
+      switch ((char)D[1]) { // which sub task ?
+      case 00:              // display hardware window
+        Hardware->Show();
         break;
-      case 2:  // input
-        inStr = &memory[A[1] & ADDRMASK];  // address of string
-        simIO->textIn(inStr, &D[1], NULL); // read string into inStr, length in D1
+      case 01: // return address of 7-segment display in D1.L
+        D[1] = StrToInt("0x" + Hardware->seg7addr->EditText);
         break;
-      case 3:  // display number in D1.L
-        itoa(D[1], buf, 10);            // convert D1.L to string, put in buf
-        simIO->textOut(buf);            // display number without CRLF
+      case 02: // return address of LEDs in D1.L
+        D[1] = StrToInt("0x" + Hardware->LEDaddr->EditText);
         break;
-      case 4:  // read number to D1.L   // inputBuf & inputSize must be global
-        simIO->textIn(inputBuf, &inputSize, &D[1]); // read number to D1
+      case 03: // return address of toggle switches in D1.L
+        D[1] = StrToInt("0x" + Hardware->switchAddr->EditText);
         break;
-      case 5:  // read char to D1.B
-        simIO->charIn((char*)&D[1]);
+      case 04: // return sim68k version number in D1.L
+        D[1] = VERSION;
         break;
-      case 6:  // display char in D1.B
-        simIO->charOut((char)D[1]);
+      case 05: // enable exception processing
+        exceptions = true;
+        Form1->ExceptionsEnabled->Checked = true;
+        Form1->SaveSettings();
         break;
-      case 7:  // Set D1.B to 1 if keyboard input is pending, otherwise set to 0
-        if(pendingKey) {
-          D[1] &= 0xFFFFFF00;
-          D[1] |= 0x00000001;
-        } else {
-          D[1] &= 0xFFFFFF00;
-        }
+      case 06: // set auto IRQ
+        Hardware->setAutoIRQ((uchar)D[2], D[3]);
         break;
-      case 8:  // Return time in hundredths of a second since midnight in D1.L
-        struct  time t;
-        gettime(&t);
-        D[1] = t.ti_hour * 60 * 60 * 100 +
-               t.ti_min  * 60 * 100 +
-               t.ti_sec  * 100 +
-               t.ti_hund;
+      case 07: // return address of push button switches in D1.L
+        D[1] = StrToInt("0x" + Hardware->pbAddr->EditText);
         break;
-      case 9:  // terminate the program
-        Form1->AutoTraceTimer->Enabled = false;
-        trace = false;
-        halt = true;
-        Hardware->disable();
-        Log->stopLogWithAnnounce();
-        break;
-      case 10:                  // print text at (A1)
-          inStr = &memory[A[1] & ADDRMASK];        // address of string
-          // check memory map
-          code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-          if (code == BUS_ERROR)        // if bus error caused by memory map
-            return code;
-          while (*inStr)
-            printChar(*inStr++);
-        break;
-      case 11: // position cursor at col,row. D1.W holds col,row as bytes
-        if ((unsigned short)D[1] == 0xFF00)  // Clear Screen if D1.W is $FF00.
-          simIO->clear();
-        else if ((unsigned short)D[1] == 0x00FF) // Return cursor position
-          simIO->getrc((short*)&D[1]);          // puts cursor position in D1.W
-        else
-          simIO->gotorc((char)D[1],(char)(D[1]>>8));
-        break;
-      case 12:  // keyboard echo (on/off)
-        if ((char)D[1]==0)              // if D1.B = 0
-          keyboardEcho = false;
-        else
-          keyboardEcho = true;
-        break;
-      case 13: case 14:           // Display NULL terminated string at (A1)
-        inStr = &memory[A[1] & ADDRMASK];    // address of string
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        if ((char)D[0]==14)             // if D0.B = 14
-          simIO->textOut(inStr);        // display string without CRLF
-        else
-          simIO->textOutCR(inStr);      // display string with CRLF
-        break;
-      case 15:                    // Display D1 converted to radix in D2.B
-        if ((char)D[2]>=2 && (char)D[2]<=36) {   // if 2 <= D2.B <= 36
-          ultoa(D[1], buf, (char)D[2]);  // convert D1.L to string, put in buf
-          AnsiString hex = buf;
-          hex = hex.UpperCase();         // convert to upper case
-          simIO->textOut(hex.c_str());   // display number without CRLF
-        }
-        break;
-      case 16:                    // turn input prompt on/off
-        if ((char)D[1]==0)              // if D1.B = 0
-          inputPrompt = false;
-        else if ((char)D[1]==1)
-          inputPrompt = true;
-        else if ((char)D[1]==2)
-          inputLFdisplay = false;
-        else if ((char)D[1]==3)
-          inputLFdisplay = true;
-        break;
-      // Displays the NULL terminated string at (A1) without CRLF
-      //  then displays the decimal number in D1.L.
-      case 17:
-        inStr = &memory[A[1] & ADDRMASK];    // address of string
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->textOut(inStr);    // display string without CRLF
-        itoa(D[1], buf, 10);      // convert D1.L to string, put in buf
-        simIO->textOut(buf);      // display number without CRLF
-        break;
-      // Displays the NULL terminated string at (A1) without CRLF
-      //  then reads a number from the keyboard into D1.L.
-      case 18:
-        inStr = &memory[A[1] & ADDRMASK];    // address of string
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->textOut(inStr);    // display string without CRLF
-        simIO->textIn(inputBuf, &inputSize, &D[1]); // read number to D1
-        break;
-      // get keypress state
-      case 19:
-        simIO->getKeyState(&D[1]);
-        break;
-      case 20:
-        sprintf(buf,"%*d",(char)D[2],D[1]);
-        simIO->textOut(buf);            // display number without CRLF
-        break;
-      case 21:                          // if set font color
-        simIO->setFontProperties(D[1], D[2]);
-        break;
-      case 22:                          // return character at Row, Col in D1
-        simIO->getCharAt((ushort)(D[1]>>16), (ushort)D[1], (char*)&D[1]);
-        break;
-      case 23:                          // delay D1/100 second
-        {uint n = (unsigned)D[1];
-        while(n-- > 0 && runMode) {
-          Application->ProcessMessages();
-          Sleep(10);                    // delay 1/100 second
-        }}
-        break;
-      case 24:
-        if (D[1] == 0) {                // disable simulator key actions
-          Form1->restoreMenuTask19();
-        } else if (D[1] == 1) {
-          Form1->setMenuTask19();
-        }
-        break;
-      case 25:                          // scroll text window at Row, Col, Height, Width, Up or Down
-        simIO->scrollRect( (ushort)(D[1]>>16), (ushort)D[1], (ushort)(D[2]>>16), (ushort)D[2], (ushort)D[3] );
-        break;
-      // ------------------SIMULATOR ENVIRONMENT------------------------
-      case 30:                  // - Clear cycle counter
-        cycles = 0;
-        break;
-      case 31:                  // - Return cycle counter in D1.L.
-        if (cycles > 0xFFFFFFFF)        // if cycles > 32 bit
-          D[1] = 0;             // return 0
-        else
-          D[1] = (uint)cycles;  // return cycles
-        break;
-      case 32:                  // - Hardware
-        //AnsiString str = "0x";
-        switch ((char)D[1]) {  // which sub task ?
-          case 00:              // display hardware window
-            Hardware->Show();
-            break;
-          case 01:              // return address of 7-segment display in D1.L
-            D[1] = StrToInt("0x" + Hardware->seg7addr->EditText);
-            break;
-          case 02:              // return address of LEDs in D1.L
-            D[1] = StrToInt("0x" + Hardware->LEDaddr->EditText);
-            break;
-          case 03:              // return address of toggle switches in D1.L
-            D[1] = StrToInt("0x" + Hardware->switchAddr->EditText);
-            break;
-          case 04:              // return sim68k version number in D1.L
-            D[1] = VERSION;
-            break;
-          case 05:              // enable exception processing
-            exceptions = true;
-            Form1->ExceptionsEnabled->Checked = true;
-            Form1->SaveSettings();
-            break;
-          case 06:              // set auto IRQ
-            Hardware->setAutoIRQ((uchar)D[2], D[3]);
-            break;
-          case 07:              // return address of push button switches in D1.L
-            D[1] = StrToInt("0x" + Hardware->pbAddr->EditText);
-            break;
-        }
-        break;
-      case 33:                  // get/set Output Window Size
-        if(D[1] == 1) {         // if set windowed mode
-          simIO->fullScreen = false;
-          simIO->setupWindow();
-        } else if(D[1] == 2) {  // if set fullscreen mode
-          simIO->fullScreen = true;
-          simIO->setupWindow();
-        } else if(D[1]) {       // if set size
-          simIO->setWindowSize((short)(D[1]>>16),(short)D[1]);
-        } else {                // get size
-          ushort width, height;
-          simIO->getWindowSize(width, height);
-          D[1] = (((uint)width)<<16) + height;
-        }
-        break;
+      }
+      break;
+    case 33:           // get/set Output Window Size
+      if (D[1] == 1) { // if set windowed mode
+        simIO->fullScreen = false;
+        simIO->setupWindow();
+      } else if (D[1] == 2) { // if set fullscreen mode
+        simIO->fullScreen = true;
+        simIO->setupWindow();
+      } else if (D[1]) { // if set size
+        simIO->setWindowSize((short)(D[1] >> 16), (short)D[1]);
+      } else { // get size
+        ushort width, height;
+        simIO->getWindowSize(width, height);
+        D[1] = (((uint)width) << 16) + height;
+      }
+      break;
 
-      // ---------------------- SERIAL I/O ----------------------------
-      case 40:                  // if Init Serial Port
-        inStr = &memory[A[1] & ADDRMASK];  // address of port name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(buf));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        cid = (unsigned int)D[0];
-        cid = cid>>16;
-        simIO->initComm(cid, buf, (short*)&D[0]);
-        break;
-      case 41:                  // if Set Port Parameters
-        cid = (unsigned int)D[0];
-        cid = cid>>16;
-        simIO->setCommParams(cid, D[1], (short*)&D[0]);
-        break;
-      case 42:                  // if Read String
-        cid = (unsigned int)D[0];
-        cid = cid>>16;
-        simIO->readComm(cid, (uchar*)&D[1], &memory[A[1] & ADDRMASK], (short*)&D[0]);
-        break;
-      case 43:                  // if Send String
-        cid = (unsigned int)D[0];
-        cid = cid>>16;
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), (uchar)D[1]);
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->sendComm(cid, (uchar*)&D[1], &memory[A[1] & ADDRMASK], (short*)&D[0]);
-        break;
+    // ---------------------- SERIAL I/O ----------------------------
+    case 40:                            // if Init Serial Port
+      inStr = &memory[A[1] & ADDRMASK]; // address of port name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(buf));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      cid = (unsigned int)D[0];
+      cid = cid >> 16;
+      simIO->initComm(cid, buf, (short *)&D[0]);
+      break;
+    case 41: // if Set Port Parameters
+      cid = (unsigned int)D[0];
+      cid = cid >> 16;
+      simIO->setCommParams(cid, D[1], (short *)&D[0]);
+      break;
+    case 42: // if Read String
+      cid = (unsigned int)D[0];
+      cid = cid >> 16;
+      simIO->readComm(cid, (uchar *)&D[1], &memory[A[1] & ADDRMASK],
+                      (short *)&D[0]);
+      break;
+    case 43: // if Send String
+      cid = (unsigned int)D[0];
+      cid = cid >> 16;
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), (uchar)D[1]);
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->sendComm(cid, (uchar *)&D[1], &memory[A[1] & ADDRMASK],
+                      (short *)&D[0]);
+      break;
 
-      // ----------------------FILE HANDLING----------------------------
-      case 50:                          // CLOSE ALL FILES
-        closeFiles((short*)&D[0]);
-        break;
-      case 51:                          // OPEN EXISTING file.
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
+    // ----------------------FILE HANDLING----------------------------
+    case 50: // CLOSE ALL FILES
+      closeFiles((short *)&D[0]);
+      break;
+    case 51:                            // OPEN EXISTING file.
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      openFile(&D[1], buf, (short *)&D[0]);
+      break;
+    case 52:                            // OPEN NEW FILE.
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      newFile(&D[1], buf, (short *)&D[0]);
+      break;
+    case 53: // READ FILE.
+      // if data would overflow 68000 memory space
+      if ((unsigned int)((A[1] & ADDRMASK) + (unsigned int)D[2]) > MEMSIZE)
+        D[0] = (D[0] & 0xFFFF0000) | F_ERROR; // set error code
+      else {
         // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
+        code = memoryMapCheck(Invalid | Read | Rom, (A[1] & ADDRMASK),
+                              (unsigned int)D[2]);
+        if (code == BUS_ERROR) // if bus error caused by memory map
           return code;
-        openFile(&D[1], buf, (short*)&D[0]);
-        break;
-      case 52:                          // OPEN NEW FILE.
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
+        if (code == SUCCESS)
+          readFile(D[1], &memory[A[1] & ADDRMASK], (unsigned int *)&D[2],
+                   (short *)&D[0]);
+      }
+      break;
+    case 54: // WRITE FILE.
+      // if write size goes beyond end of 68000 memory space
+      if ((unsigned int)((A[1] & ADDRMASK) + (unsigned int)D[2]) > MEMSIZE)
+        D[0] = (D[0] & 0xFFFF0000) | F_ERROR; // set error code
+      else {
         // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
+        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), (unsigned int)D[2]);
+        if (code == BUS_ERROR) // if bus error caused by memory map
           return code;
-        newFile(&D[1], buf, (short*)&D[0]);
-        break;
-      case 53:                          // READ FILE.
-        // if data would overflow 68000 memory space
-        if ((unsigned int)((A[1] & ADDRMASK) + (unsigned int)D[2]) > MEMSIZE)
-          D[0] = (D[0] & 0xFFFF0000) | F_ERROR; // set error code
-        else {
-          // check memory map
-          code = memoryMapCheck(Invalid | Read | Rom, (A[1] & ADDRMASK), (unsigned int)D[2]);
-          if (code == BUS_ERROR)        // if bus error caused by memory map
-            return code;
-          if (code == SUCCESS)
-            readFile(D[1], &memory[A[1] & ADDRMASK], (unsigned int*)&D[2], (short*)&D[0]);
-        }
-        break;
-      case 54:                          // WRITE FILE.
-        // if write size goes beyond end of 68000 memory space
-        if ((unsigned int)((A[1] & ADDRMASK) + (unsigned int)D[2]) > MEMSIZE)
-          D[0] = (D[0] & 0xFFFF0000) | F_ERROR; // set error code
-        else {
-          // check memory map
-          code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), (unsigned int)D[2]);
-          if (code == BUS_ERROR)        // if bus error caused by memory map
-            return code;
-          writeFile(D[1], &memory[A[1] & ADDRMASK], (unsigned int)D[2], (short*)&D[0]);
-        }
-        break;
-      case 55:                          // POSITION FILE.
-        positionFile(D[1], D[2], (short*)&D[0]);
-        break;
-      case 56:                          // CLOSE FILE.
-        closeFile(D[1], (short*)&D[0]);
-        break;
-      case 57:                          // DELETE FILE.
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        deleteFile(buf, (short*)&D[0]);
-        break;
-      case 58:                          // DISPLAY FILE DIALOG.
-        simIO->displayFileDialog(&D[1], A[1], A[2], A[3], (short*)&D[0]);
-        break;
-      case 59:                          // file operation.
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        fileOp(&D[1], buf, (short*)&D[0]);
-        break;
+        writeFile(D[1], &memory[A[1] & ADDRMASK], (unsigned int)D[2],
+                  (short *)&D[0]);
+      }
+      break;
+    case 55: // POSITION FILE.
+      positionFile(D[1], D[2], (short *)&D[0]);
+      break;
+    case 56: // CLOSE FILE.
+      closeFile(D[1], (short *)&D[0]);
+      break;
+    case 57:                            // DELETE FILE.
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      deleteFile(buf, (short *)&D[0]);
+      break;
+    case 58: // DISPLAY FILE DIALOG.
+      simIO->displayFileDialog(&D[1], A[1], A[2], A[3], (short *)&D[0]);
+      break;
+    case 59:                            // file operation.
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      fileOp(&D[1], buf, (short *)&D[0]);
+      break;
 
-      // -------------------- MOUSE -----------------------------
-      case 60:                  // enable/disable mouse IRQ
-        mouseIRQ = (byte)(D[1] >> 8);
-        if (mouseIRQ > 7)       // if invalid IRQ number
-          break;
-        if (D[1] & 0x0001)      // if button down IRQ
-          mouseDownIRQ = mouseIRQ;
-        if (D[1] & 0x0002)      // if button up IRQ
-          mouseUpIRQ = mouseIRQ;
-        if (D[1] & 0x0004)      // if move IRQ
-          mouseMoveIRQ = mouseIRQ;
+    // -------------------- MOUSE -----------------------------
+    case 60: // enable/disable mouse IRQ
+      mouseIRQ = (byte)(D[1] >> 8);
+      if (mouseIRQ > 7) // if invalid IRQ number
         break;
-      case 61:                  // Mouse Read
-        D[0] = 0;
-        if ((char)D[1] == 0) {  // if current state of mouse
-          if (mouseLeft)
-            D[0] = 1;
-          if (mouseRight)
-            D[0] += 0x02;
-          if (mouseMiddle)
-            D[0] += 0x04;
-          if (mouseDouble)
-            D[0] += 0x08;
-          if (keyShift)
-            D[0] += 0x10;
-          if (keyAlt)
-            D[0] += 0x20;
-          if (keyCtrl)
-            D[0] += 0x40;
-          D[1] = (mouseY << 16) | (ushort)mouseX;
-        } else if ((char)D[1] == 1) {   // if mouse up state
-          if (mouseLeftUp)
-            D[0] = 1;
-          if (mouseRightUp)
-            D[0] += 0x02;
-          if (mouseMiddleUp)
-            D[0] += 0x04;
-          if (mouseDoubleUp)
-            D[0] += 0x08;
-          if (keyShiftUp)
-            D[0] += 0x10;
-          if (keyAltUp)
-            D[0] += 0x20;
-          if (keyCtrlUp)
-            D[0] += 0x40;
-          D[1] = (mouseYUp << 16) | (ushort)mouseXUp;
-        } else if ((char)D[1] == 2) {   // if mouse down state
-          if (mouseLeftDown)
-            D[0] = 1;
-          if (mouseRightDown)
-            D[0] += 0x02;
-          if (mouseMiddleDown)
-            D[0] += 0x04;
-          if (mouseDoubleDown)
-            D[0] += 0x08;
-          if (keyShiftDown)
-            D[0] += 0x10;
-          if (keyAltDown)
-            D[0] += 0x20;
-          if (keyCtrlDown)
-            D[0] += 0x40;
-          D[1] = (mouseYDown << 16) | (ushort)mouseXDown;
-        }
-        break;
+      if (D[1] & 0x0001) // if button down IRQ
+        mouseDownIRQ = mouseIRQ;
+      if (D[1] & 0x0002) // if button up IRQ
+        mouseUpIRQ = mouseIRQ;
+      if (D[1] & 0x0004) // if move IRQ
+        mouseMoveIRQ = mouseIRQ;
+      break;
+    case 61: // Mouse Read
+      D[0] = 0;
+      if ((char)D[1] == 0) { // if current state of mouse
+        if (mouseLeft)
+          D[0] = 1;
+        if (mouseRight)
+          D[0] += 0x02;
+        if (mouseMiddle)
+          D[0] += 0x04;
+        if (mouseDouble)
+          D[0] += 0x08;
+        if (keyShift)
+          D[0] += 0x10;
+        if (keyAlt)
+          D[0] += 0x20;
+        if (keyCtrl)
+          D[0] += 0x40;
+        D[1] = (mouseY << 16) | (ushort)mouseX;
+      } else if ((char)D[1] == 1) { // if mouse up state
+        if (mouseLeftUp)
+          D[0] = 1;
+        if (mouseRightUp)
+          D[0] += 0x02;
+        if (mouseMiddleUp)
+          D[0] += 0x04;
+        if (mouseDoubleUp)
+          D[0] += 0x08;
+        if (keyShiftUp)
+          D[0] += 0x10;
+        if (keyAltUp)
+          D[0] += 0x20;
+        if (keyCtrlUp)
+          D[0] += 0x40;
+        D[1] = (mouseYUp << 16) | (ushort)mouseXUp;
+      } else if ((char)D[1] == 2) { // if mouse down state
+        if (mouseLeftDown)
+          D[0] = 1;
+        if (mouseRightDown)
+          D[0] += 0x02;
+        if (mouseMiddleDown)
+          D[0] += 0x04;
+        if (mouseDoubleDown)
+          D[0] += 0x08;
+        if (keyShiftDown)
+          D[0] += 0x10;
+        if (keyAltDown)
+          D[0] += 0x20;
+        if (keyCtrlDown)
+          D[0] += 0x40;
+        D[1] = (mouseYDown << 16) | (ushort)mouseXDown;
+      }
+      break;
 
-      // -------------------- Keyboard IRQ ---------------------------
-      case 62:                  // enable/disable Key IRQ
-        keyIRQ = (byte)(D[1] >> 8);
-        if (keyIRQ > 7)         // if invalid IRQ number
-          break;
-        if (D[1] & 0x0001)      // if key down IRQ
-          keyDownIRQ = keyIRQ;
-        if (D[1] & 0x0002)      // if key up IRQ
-          keyUpIRQ = keyIRQ;
+    // -------------------- Keyboard IRQ ---------------------------
+    case 62: // enable/disable Key IRQ
+      keyIRQ = (byte)(D[1] >> 8);
+      if (keyIRQ > 7) // if invalid IRQ number
         break;
-      // -------------------- SOUND -----------------------------
-      case 70:                  // if play WAV file
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->playSound(buf, (short*)&D[0]);
-        break;
-      case 71:                  // if load WAV file
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->loadSound(buf, (unsigned char) D[1]);
-        break;
-      case 72:                  // if play WAV from memory
-        simIO->playSoundMem((unsigned char) D[1], (short*)&D[0]);
-        break;
-      case 73:                  // if play WAV file using DirectX
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->playSoundDX(buf, (short*)&D[0]);
-        break;
-      case 74:                  // if load WAV file into DirectX memory
-        inStr = &memory[A[1] & ADDRMASK];  // address of file name string
-        strncpy(buf,inStr,255); // make copy of string so we can terminate it
-        buf[255] = '\0';        // Terminated!, in case it wasn't already
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->loadSoundDX(buf, (unsigned char) D[1], (short*)&D[0]);
-        break;
-      case 75:                  // if play WAV from DirectX memory
-        simIO->playSoundMemDX((unsigned char) D[1], (short*)&D[0]);
-        break;
-      case 76:                  // control standard player
-        simIO->controlSound((unsigned int) D[2], (unsigned char) D[1], (short*)&D[0]);
-        break;
-      case 77:                  // control DirectX player
-        simIO->controlSoundDX((unsigned int) D[2], (unsigned char) D[1], (short*)&D[0]);
-        break;
+      if (D[1] & 0x0001) // if key down IRQ
+        keyDownIRQ = keyIRQ;
+      if (D[1] & 0x0002) // if key up IRQ
+        keyUpIRQ = keyIRQ;
+      break;
+    // -------------------- SOUND -----------------------------
+    case 70:                            // if play WAV file
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->playSound(buf, (short *)&D[0]);
+      break;
+    case 71:                            // if load WAV file
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->loadSound(buf, (unsigned char)D[1]);
+      break;
+    case 72: // if play WAV from memory
+      simIO->playSoundMem((unsigned char)D[1], (short *)&D[0]);
+      break;
+    case 73:                            // if play WAV file using DirectX
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->playSoundDX(buf, (short *)&D[0]);
+      break;
+    case 74:                            // if load WAV file into DirectX memory
+      inStr = &memory[A[1] & ADDRMASK]; // address of file name string
+      strncpy(buf, inStr, 255); // make copy of string so we can terminate it
+      buf[255] = '\0';          // Terminated!, in case it wasn't already
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->loadSoundDX(buf, (unsigned char)D[1], (short *)&D[0]);
+      break;
+    case 75: // if play WAV from DirectX memory
+      simIO->playSoundMemDX((unsigned char)D[1], (short *)&D[0]);
+      break;
+    case 76: // control standard player
+      simIO->controlSound((unsigned int)D[2], (unsigned char)D[1],
+                          (short *)&D[0]);
+      break;
+    case 77: // control DirectX player
+      simIO->controlSoundDX((unsigned int)D[2], (unsigned char)D[1],
+                            (short *)&D[0]);
+      break;
 
-      // -------------------- GRAPHICS -----------------------------
-      case 80:                  // if set line color
-        simIO->setLineColor(D[1]);
-        break;
-      case 81:                  // if set fill color
-        simIO->setFillColor(D[1]);
-        break;
-      case 82:                  // if drawPixel
-        simIO->drawPixel((short)D[1],(short)D[2]);
-        break;
-      case 83:                  // if getPixel
-        D[0] = simIO->getPixel((short)D[1], (short)D[2]);
-        break;
-      case 84:                  // if line
-        simIO->line((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
-        break;
-      case 85:                  // if lineTo
-        simIO->lineTo((short)D[1], (short)D[2]);
-        break;
-      case 86:                  // if moveTo
-        simIO->moveTo((short)D[1], (short)D[2]);
-        break;
-      case 87:                  // if rectangle
-        simIO->rectangle((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
-        break;
-      case 88:                  // if ellipse
-        simIO->ellipse((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
-        break;
-      case 89:                  // if flood fill
-        simIO->floodFill((short)D[1], (short)D[2]);
-        break;
-      case 90:                  // if unfilled rectangle
-        simIO->unfilledRectangle((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
-        break;
-      case 91:                  // if unfilled ellipse
-        simIO->unfilledEllipse((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
-        break;
-      case 92:                  // if set pen mode
-        simIO->setDrawingMode(D[1]);
-        break;
-      case 93:                  // if set pen width
-        simIO->setPenWidth(D[1]);
-        break;
-      case 94:                  // if repaint
-        simIO->FormPaint((TObject *)simIO);
-        break;
-      case 95:                  // Draw NULL terminated string at (A1) to X,Y in D1.W & D2.W
-        inStr = &memory[A[1] & ADDRMASK];          // address of string
-        // check memory map
-        code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
-        if (code == BUS_ERROR)        // if bus error caused by memory map
-          return code;
-        simIO->drawText(inStr, (short)D[1], (short)D[2]); // display string
-        break;
-      case 96:                  // Get X,Y pen position where D1.W = X & D2.W = Y
-        simIO->getXY((short*)&D[1],(short*)&D[2]);
-        break;
+    // -------------------- GRAPHICS -----------------------------
+    case 80: // if set line color
+      simIO->setLineColor(D[1]);
+      break;
+    case 81: // if set fill color
+      simIO->setFillColor(D[1]);
+      break;
+    case 82: // if drawPixel
+      simIO->drawPixel((short)D[1], (short)D[2]);
+      break;
+    case 83: // if getPixel
+      D[0] = simIO->getPixel((short)D[1], (short)D[2]);
+      break;
+    case 84: // if line
+      simIO->line((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
+      break;
+    case 85: // if lineTo
+      simIO->lineTo((short)D[1], (short)D[2]);
+      break;
+    case 86: // if moveTo
+      simIO->moveTo((short)D[1], (short)D[2]);
+      break;
+    case 87: // if rectangle
+      simIO->rectangle((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
+      break;
+    case 88: // if ellipse
+      simIO->ellipse((short)D[1], (short)D[2], (short)D[3], (short)D[4]);
+      break;
+    case 89: // if flood fill
+      simIO->floodFill((short)D[1], (short)D[2]);
+      break;
+    case 90: // if unfilled rectangle
+      simIO->unfilledRectangle((short)D[1], (short)D[2], (short)D[3],
+                               (short)D[4]);
+      break;
+    case 91: // if unfilled ellipse
+      simIO->unfilledEllipse((short)D[1], (short)D[2], (short)D[3],
+                             (short)D[4]);
+      break;
+    case 92: // if set pen mode
+      simIO->setDrawingMode(D[1]);
+      break;
+    case 93: // if set pen width
+      simIO->setPenWidth(D[1]);
+      break;
+    case 94: // if repaint
+      simIO->FormPaint((TObject *)simIO);
+      break;
+    case 95: // Draw NULL terminated string at (A1) to X,Y in D1.W & D2.W
+      inStr = &memory[A[1] & ADDRMASK]; // address of string
+      // check memory map
+      code = memoryMapCheck(Invalid, (A[1] & ADDRMASK), strlen(inStr));
+      if (code == BUS_ERROR) // if bus error caused by memory map
+        return code;
+      simIO->drawText(inStr, (short)D[1], (short)D[2]); // display string
+      break;
+    case 96: // Get X,Y pen position where D1.W = X & D2.W = Y
+      simIO->getXY((short *)&D[1], (short *)&D[2]);
+      break;
 
-      // -------------------- NETWORK -----------------------------
-      case 100:                  // if Create Client
-        simIO->createNetClient(D[1], &memory[A[2] & ADDRMASK], (int*)&D[0]);
-        break;
-      case 101:                  // if Create Server
-        simIO->createNetServer(D[1], (int*)&D[0]);
-        break;
-      case 102:                  // if Send (Deprecated)
-        simIO->sendNet(D[1], &memory[A[1] & ADDRMASK], &memory[A[2] & ADDRMASK], (int*)&D[1], (int*)&D[0]);
-        break;
-      case 103:                  // if Receive (Deprecated)
-        simIO->receiveNet(D[1], &memory[A[1] & ADDRMASK], (int*)&D[1], &memory[A[2] & ADDRMASK], (int*)&D[0]);
-        break;
-      case 104:                  // if Close Connection
-        simIO->closeNetConnection(D[1], (int*)&D[0]);
-        break;
-      case 105:                  // if Get Local IP
-        simIO->getLocalIP(&memory[A[2] & ADDRMASK], (int*)&D[0]);
-        break;
-      case 106:                  // if Send on port
-        simIO->sendPortNet(&D[0], &D[1], &memory[A[1] & ADDRMASK], &memory[A[2] & ADDRMASK]);
-        break;
-      case 107:                  // if Receive data and port
-        simIO->receivePortNet(&D[0], &D[1], &memory[A[1] & ADDRMASK], &memory[A[2] & ADDRMASK]);
-        break;
-      default:
-        return (TRAP_TRAP);
+    // -------------------- NETWORK -----------------------------
+    case 100: // if Create Client
+      simIO->createNetClient(D[1], &memory[A[2] & ADDRMASK], (int *)&D[0]);
+      break;
+    case 101: // if Create Server
+      simIO->createNetServer(D[1], (int *)&D[0]);
+      break;
+    case 102: // if Send (Deprecated)
+      simIO->sendNet(D[1], &memory[A[1] & ADDRMASK], &memory[A[2] & ADDRMASK],
+                     (int *)&D[1], (int *)&D[0]);
+      break;
+    case 103: // if Receive (Deprecated)
+      simIO->receiveNet(D[1], &memory[A[1] & ADDRMASK], (int *)&D[1],
+                        &memory[A[2] & ADDRMASK], (int *)&D[0]);
+      break;
+    case 104: // if Close Connection
+      simIO->closeNetConnection(D[1], (int *)&D[0]);
+      break;
+    case 105: // if Get Local IP
+      simIO->getLocalIP(&memory[A[2] & ADDRMASK], (int *)&D[0]);
+      break;
+    case 106: // if Send on port
+      simIO->sendPortNet(&D[0], &D[1], &memory[A[1] & ADDRMASK],
+                         &memory[A[2] & ADDRMASK]);
+      break;
+    case 107: // if Receive data and port
+      simIO->receivePortNet(&D[0], &D[1], &memory[A[1] & ADDRMASK],
+                            &memory[A[2] & ADDRMASK]);
+      break;
+    default:
+      return (TRAP_TRAP);
     } // switch
     return SUCCESS;
-  }else
+  } else
     return (TRAP_TRAP);
 }
 
+int TRAPV() {
 
+  if (SR & vbit)
+    return (TRAPV_TRAP);
 
+  inc_cyc(4);
 
-int	TRAPV()
-{
-
-if (SR & vbit)
-	return (TRAPV_TRAP);
-
-inc_cyc (4);
-
-return SUCCESS;
-
+  return SUCCESS;
 }
 
-int     LINE1010()
-{
-  return LINE_1010;
-}
+int LINE1010() { return LINE_1010; }
 
 // Fxxx instruction.
 // A special case is FFFF FFFF the Sim68K command (SIMHALT) to stop execution.
-int     LINE1111()
-{
-  long	temp;
-  mem_req (PC, (long) WORD_MASK, &temp);
-  if(inst == 0xFFFF && temp == 0xFFFF && simhalt_on)  // if SIMHALT command
+int LINE1111() {
+  long temp;
+  mem_req(PC, (long)WORD_MASK, &temp);
+  if (inst == 0xFFFF && temp == 0xFFFF && simhalt_on) // if SIMHALT command
   {
-    PC += 2;    // position at next instruction
+    PC += 2; // position at next instruction
     Form1->AutoTraceTimer->Enabled = false;
     trace = false;
     halt = true;
@@ -1320,19 +1275,4 @@ int     LINE1111()
   }
   return LINE_1111;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -15,55 +15,51 @@ This file contains definitions used in the simulator source files.
 #define uint unsigned int
 #define ushort unsigned short
 #define uchar unsigned char
-//typedef unsigned int uint;
-//typedef unsigned short ushort;
-//typedef unsigned char uchar;
+// typedef unsigned int uint;
+// typedef unsigned short ushort;
+// typedef unsigned char uchar;
 
 // version info
 const char TITLE[] = "EASy68K Simulator v5.16.1"; // ***** change both *****
-const unsigned int VERSION =        0x00051001;    // ***** change both *****
+const unsigned int VERSION = 0x00051001;          // ***** change both *****
 
 // memory map types (bit flags which may be combined with OR logic)
-enum maptype {Invalid=0x01, Protected=0x02, Read=0x04, Rom=0x10};
+enum maptype { Invalid = 0x01, Protected = 0x02, Read = 0x04, Rom = 0x10 };
 
 // status register bitmasks
 
-const int bit_1	    = 0x0001;
-const int bit_2		= 0x0002;
-const int bit_3		= 0x0004;
-const int bit_4		= 0x0008;
-const int bit_5		= 0x0010;
-const int bit_6		= 0x0020;
-const int bit_7		= 0x0040;
-const int bit_8		= 0x0080;
-const int bit_9		= 0x0100;
-const int bit_10	= 0x0200;
-const int bit_11	= 0x0400;
-const int bit_12	= 0x0800;
+const int bit_1 = 0x0001;
+const int bit_2 = 0x0002;
+const int bit_3 = 0x0004;
+const int bit_4 = 0x0008;
+const int bit_5 = 0x0010;
+const int bit_6 = 0x0020;
+const int bit_7 = 0x0040;
+const int bit_8 = 0x0080;
+const int bit_9 = 0x0100;
+const int bit_10 = 0x0200;
+const int bit_11 = 0x0400;
+const int bit_12 = 0x0800;
 
-
-const int cbit		= 0x0001;
-const int vbit		= 0x0002;
-const int zbit		= 0x0004;
-const int nbit		= 0x0008;
-const int xbit		= 0x0010;
-const int intmsk	= 0x0700;       // three bits
-const int sbit		= 0x2000;
-const int tbit		= 0x8000;
-
+const int cbit = 0x0001;
+const int vbit = 0x0002;
+const int zbit = 0x0004;
+const int nbit = 0x0008;
+const int xbit = 0x0010;
+const int intmsk = 0x0700; // three bits
+const int sbit = 0x2000;
+const int tbit = 0x8000;
 
 // misc
-const uint MEMSIZE      = 0x01000000;   // 16 Meg address space
-const int ADDRMASK      = 0x00ffffff;
+const uint MEMSIZE = 0x01000000; // 16 Meg address space
+const int ADDRMASK = 0x00ffffff;
 
-const int  BYTE_MASK    = 0xff;         // byte mask
-const int  WORD_MASK    = 0xffff;       // word mask
-const long LONG_MASK    = 0xffffffff;   // long mask
+const int BYTE_MASK = 0xff;        // byte mask
+const int WORD_MASK = 0xffff;      // word mask
+const long LONG_MASK = 0xffffffff; // long mask
 
-
-const int D_REGS	= 8;            // number of D registers
-const int A_REGS	= 9;            // number of A registers
-
+const int D_REGS = 8; // number of D registers
+const int A_REGS = 9; // number of A registers
 
 // Possible addressing modes permitted by an instruction
 // Each bit represents a different addressing mode.
@@ -71,68 +67,64 @@ const int A_REGS	= 9;            // number of A registers
 // modes are permitted.
 // Imm d[PC,Xi] d[PC] Abs.L Abs.W d[An,Xi] d[An] -[An] [An]+ [An] An Dn
 //  0      1      1     1     1      1       1     0     0     1   0  0
-const int DATA_ADDR             = 0x0ffd;
-const int MEMORY_ADDR		= 0x0ffc;
-const int CONTROL_ADDR		= 0x07e4;
-const int ALTERABLE_ADDR	= 0x01ff;
-const int ALL_ADDR		= 0x0fff;
-const int DATA_ALT_ADDR		= (DATA_ADDR & ALTERABLE_ADDR);
-const int MEM_ALT_ADDR		= (MEMORY_ADDR & ALTERABLE_ADDR);
-const int CONT_ALT_ADDR		= (CONTROL_ADDR & ALTERABLE_ADDR);
-
+const int DATA_ADDR = 0x0ffd;
+const int MEMORY_ADDR = 0x0ffc;
+const int CONTROL_ADDR = 0x07e4;
+const int ALTERABLE_ADDR = 0x01ff;
+const int ALL_ADDR = 0x0fff;
+const int DATA_ALT_ADDR = (DATA_ADDR & ALTERABLE_ADDR);
+const int MEM_ALT_ADDR = (MEMORY_ADDR & ALTERABLE_ADDR);
+const int CONT_ALT_ADDR = (CONTROL_ADDR & ALTERABLE_ADDR);
 
 /* these are the instruction return codes */
 
-const int SUCCESS		= 0x0000;
-const int BAD_INST		= 0x0001;
-const int NO_PRIVILEGE		= 0x0002;
-const int CHK_EXCEPTION	        = 0x0003;
-//const int ILLEGAL_TRAP		= 0x0004;
-const int STOP_TRAP		= 0x0005;
-const int TRAPV_TRAP		= 0x0006;
-const int TRAP_TRAP		= 0x0007;
-const int DIV_BY_ZERO		= 0x0008;
-const int USER_BREAK		= 0x0009;
-const int BUS_ERROR             = 0x000A;
-const int ADDR_ERROR            = 0x000B;
-const int LINE_1010             = 0x000C;
-const int LINE_1111             = 0x000D;
-const int TRACE_EXCEPTION       = 0x000E;
-const int ROM_MAP               = 0x000F;
-const int FAILURE		= 0x1111;	// general failure
-
+const int SUCCESS = 0x0000;
+const int BAD_INST = 0x0001;
+const int NO_PRIVILEGE = 0x0002;
+const int CHK_EXCEPTION = 0x0003;
+// const int ILLEGAL_TRAP		= 0x0004;
+const int STOP_TRAP = 0x0005;
+const int TRAPV_TRAP = 0x0006;
+const int TRAP_TRAP = 0x0007;
+const int DIV_BY_ZERO = 0x0008;
+const int USER_BREAK = 0x0009;
+const int BUS_ERROR = 0x000A;
+const int ADDR_ERROR = 0x000B;
+const int LINE_1010 = 0x000C;
+const int LINE_1111 = 0x000D;
+const int TRACE_EXCEPTION = 0x000E;
+const int ROM_MAP = 0x000F;
+const int FAILURE = 0x1111; // general failure
 
 // these are the cases for condition code setting
 
-const int N_A		        = 0;
-const int GEN		        = 1;
-const int ZER		        = 2;
-const int UND		        = 3;
-const int CASE_1		= 4;
-const int CASE_2		= 5;
-const int CASE_3		= 6;
-const int CASE_4		= 7;
-const int CASE_5		= 8;
-const int CASE_6		= 9;
-const int CASE_7		= 10;
-const int CASE_8		= 11;
-const int CASE_9		= 12;
-
+const int N_A = 0;
+const int GEN = 1;
+const int ZER = 2;
+const int UND = 3;
+const int CASE_1 = 4;
+const int CASE_2 = 5;
+const int CASE_3 = 6;
+const int CASE_4 = 7;
+const int CASE_5 = 8;
+const int CASE_6 = 9;
+const int CASE_7 = 10;
+const int CASE_8 = 11;
+const int CASE_9 = 12;
 
 // these are used in run.c
 
-const int MODE_MASK  		= 0x0038;
-const int REG_MASK   		= 0x0007;
-const int FIRST_FOUR 		= 0xf000;
+const int MODE_MASK = 0x0038;
+const int REG_MASK = 0x0007;
+const int FIRST_FOUR = 0xf000;
 
-const int READ		 	= 0xffff;
-const int WRITE		 	= 0x0000;
-
+const int READ = 0xffff;
+const int WRITE = 0x0000;
 
 // conditions for BCC, DBCC, and SCC
 
-const int COND_T  = 0x00;
-const int COND_F  = 0x01;
+const int COND_T = 0x00;
+const int COND_F = 0x01;
 const int COND_HI = 0x02;
 const int COND_LS = 0x03;
 const int COND_CC = 0x04;
@@ -148,18 +140,17 @@ const int COND_LT = 0x0d;
 const int COND_GT = 0x0e;
 const int COND_LE = 0x0f;
 
-
 // file handling error codes
 const short F_SUCCESS = 0;
 const short F_EOF = 1;
 const short F_ERROR = 2;
 const short F_READONLY = 3;
 
-const int MAXFILES = 8;         // maximun files that may be open at one time
+const int MAXFILES = 8; // maximun files that may be open at one time
 
 struct FileStruct {
-  FILE *fp;                     // file pointer
-  char name[256];               // file name
+  FILE *fp;       // file pointer
+  char name[256]; // file name
 };
 
 // simulator log types
@@ -169,9 +160,8 @@ const int REGISTERS = 2;
 const int INST_REG_MEM = 3;
 const int TEXTONLY = 1;
 // LogfileDialog returns
-//const int CANCEL =  mrCancel;           // must be non-zero for modal form returns
-//const int APPEND = mrAll;
-//const int REPLACE = mrOk;
+// const int CANCEL =  mrCancel;           // must be non-zero for modal form
+// returns const int APPEND = mrAll; const int REPLACE = mrOk;
 
 //////////////////////////////////
 // DEBUG / Breakpoint definitions
@@ -220,13 +210,13 @@ const int A7_TYPE_ID = 15;
 const int PC_TYPE_ID = 16;
 const int DEFAULT_TYPE_ID = PC_TYPE_ID;
 
-const int EQUAL_OP = 0;         // ==
-const int NOT_EQUAL_OP = 1;     // !=
-const int GT_OP = 2;            // >
-const int GT_EQUAL_OP = 3;      // >=
-const int LT_OP = 4;            // <
-const int LT_EQUAL_OP = 5;      // <=
-const int NA_OP = 6;            // NA
+const int EQUAL_OP = 0;     // ==
+const int NOT_EQUAL_OP = 1; // !=
+const int GT_OP = 2;        // >
+const int GT_EQUAL_OP = 3;  // >=
+const int LT_OP = 4;        // <
+const int LT_EQUAL_OP = 5;  // <=
+const int NA_OP = 6;        // NA
 const int DEFAULT_OP = EQUAL_OP;
 
 const int BYTE_SIZE = 0;
@@ -243,12 +233,12 @@ const int DEFAULT_TYPE = RW_TYPE;
 const int EXPR_ON = 0;
 const int EXPR_OFF = 1;
 
-const int SREC_MAX = 515;       // maximum buffer size for S-Record
+const int SREC_MAX = 515; // maximum buffer size for S-Record
 
-const int MAX_COMM = 16;        // maximum number of comm ports supported
-const int MAX_SERIAL_IN = 256;  // maximum size of serial input buffer
+const int MAX_COMM = 16;       // maximum number of comm ports supported
+const int MAX_SERIAL_IN = 256; // maximum size of serial input buffer
 
-//Default window locations and sizes.
+// Default window locations and sizes.
 const int FORM1_TOP = 100;          // Form1 Top
 const int FORM1_LEFT = 100;         // Form1 Left
 const int SIMIO_FORM_TOP = 300;     // SimIO Form Top

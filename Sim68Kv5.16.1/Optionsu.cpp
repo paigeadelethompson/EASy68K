@@ -17,21 +17,14 @@
 #pragma resource "*.dfm"
 TAutoTraceOptions *AutoTraceOptions;
 //---------------------------------------------------------------------------
-__fastcall TAutoTraceOptions::TAutoTraceOptions(TComponent* Owner)
-        : TForm(Owner)
-{
-}
+__fastcall TAutoTraceOptions::TAutoTraceOptions(TComponent *Owner)
+    : TForm(Owner) {}
 //---------------------------------------------------------------------------
-void __fastcall TAutoTraceOptions::OKClick(TObject *Sender)
-{
+void __fastcall TAutoTraceOptions::OKClick(TObject *Sender) {
   Form1->AutoTraceTimer->Interval = StrToInt(AutoTraceInterval->Text);
-  Close();        
+  Close();
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TAutoTraceOptions::CancelClick(TObject *Sender)
-{
-  Close();        
-}
+void __fastcall TAutoTraceOptions::CancelClick(TObject *Sender) { Close(); }
 //---------------------------------------------------------------------------
-
